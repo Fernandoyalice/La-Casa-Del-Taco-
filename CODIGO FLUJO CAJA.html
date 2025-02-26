@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flujo de Caja - La Casa del Taco</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('114795-parrilla_de_la_barbacoa-x750.jpg') no-repeat center center fixed;
+            background-size: cover;
+            text-align: center;
+            padding: 20px;
+            color: white;
+        }
+        table {
+            width: 90%;
+            max-width: 800px;
+            margin: auto;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: center;
+            color: black;
+        }
+        th {
+            background-color: #ff3e6c;
+            color: white;
+        }
+        input {
+            width: 80px;
+            padding: 5px;
+            text-align: center;
+        }
+        .total {
+            font-weight: bold;
+            background-color: #ffe5ec;
+        }
+        .difference {
+            font-weight: bold;
+        }
+        .positive {
+            color: blue;
+        }
+        .negative {
+            color: red;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pdf-btn { background-color: #007BFF; color: white; }
+        .excel-btn { background-color: #28A745; color: white; }
+    </style>
+</head>
+<body>
+    <h1>FLUJO DE CAJA</h1>
+    <h2>LA CASA DEL TACO</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Denominación</th>
+                <th>Cantidad Apertura</th>
+                <th>Monto Apertura</th>
+                <th>Cantidad Cierre</th>
+                <th>Monto Cierre</th>
+            </tr>
+        </thead>
+        <tbody id="cashTable">
+        </tbody>
+        <tfoot>
+            <tr class="total">
+                <td>Total</td>
+                <td></td>
+                <td id="totalApertura">₡0</td>
+                <td></td>
+                <td id="totalCierre">₡0</td>
+            </tr>
+            <tr class="difference">
+                <td>Diferencia</td>
+                <td colspan="4" id="differenceAmount">₡0</td>
+            </tr>
+        </tfoot>
+    </table>
+    <button class="pdf-btn" onclick="downloadPDF()">Descargar PDF</button>
+    <button class="excel-btn" onclick="downloadExcel()">Descargar Excel</button>
+    <p>&copy; Derechos reservados - La Casa del Taco</p>
+
+    <script>
+        const denominations = [5, 10, 25, 50, 100, 500, 1000, 2000, 5000, 10000, 20000, 'Sinpe', 'Tarjeta'];
+        const tableBody = document.getElementById("cashTable");
+
+        denominations.forEach(denom => {
+            let row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${typeof denom === 'number' ? '₡' + denom : denom}</td>
+                <td><input type="number" min="0" oninput="calculateTotal()"></td>
+                <td class="amount">₡0</td>
+                <td><input type="number" min="0" oninput="calculateTotal()"></td>
+                <td class="amount">₡0</td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        function calculateTotal() {
+            let totalApertura = 0;
+            let totalCierre = 0;
+            const rows = tableBody.querySelectorAll("tr");
+            
+            rows.forEach((row, index) => {
+                const inputs = row.querySelectorAll("input");
+                const amounts = row.querySelectorAll(".amount");
+                let denom = denominations[index];
+                let openQty = parseInt(inputs[0].value) || 0;
+                let closeQty = parseInt(inputs[1].value) || 0;
+                let openAmount = (typeof denom === 'number') ? openQty * denom : openQty;
+                let closeAmount = (typeof denom === 'number') ? closeQty * denom : closeQty;
+                amounts[0].textContent = `₡${openAmount}`;
+                amounts[1].textContent = `₡${closeAmount}`;
+                totalApertura += openAmount;
+                totalCierre += closeAmount;
+            });
+            
+            document.getElementById("totalApertura").textContent = `₡${totalApertura}`;
+            document.getElementById("totalCierre").textContent = `₡${totalCierre}`;
+            let difference = totalCierre - totalApertura;
+            let diffElement = document.getElementById("differenceAmount");
+            diffElement.textContent = `₡${difference}`;
+            diffElement.className = difference >= 0 ? "positive" : "negative";
+        }
+
+        function downloadExcel() {
+            let wb = XLSX.utils.table_to_book(document.querySelector("table"));
+            XLSX.writeFile(wb, "flujo_de_caja.xlsx");
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            let doc = new jsPDF();
+            doc.text("FLUJO DE CAJA - LA CASA DEL TACO", 20, 20);
+            doc.text("Total Apertura: " + document.getElementById("totalApertura").textContent, 20, 40);
+            doc.text("Total Cierre: " + document.getElementById("totalCierre").textContent, 20, 50);
+            doc.text("Diferencia: " + document.getElementById("differenceAmount").textContent, 20, 60);
+            doc.save("flujo_de_caja.pdf");
+        }
+    </script>
+</body>
+</html>
